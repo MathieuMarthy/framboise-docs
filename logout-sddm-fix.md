@@ -2,69 +2,80 @@
 
 ## Overview
 
-**Problème** : Cliquer sur le bouton « logout » dans le menu session de Caelestia ne renvoyait pas à l'écran SDDM. Deux symptômes successifs observés :
-1. La session se fermait mais SDDM n'apparaissait pas (écran noir) — comportement original via logind D-Bus.
-2. Rien ne se passait du tout — après un premier essai avec `hyprctl dispatch exit`.
+**Problème** : Cliquer sur le bouton « logout » dans le menu session de Caelestia ne renvoyait pas à l'écran de connexion SDDM (écran noir nécessitant de basculer manuellement en TTY avec Ctrl+Alt+F3 pour intervenir).
 
-**Composants affectés** : Caelestia Shell (Quickshell), Hyprland, SDDM, logind, VT (Virtual Terminal).
+**Composants affectés** : Caelestia Shell (Quickshell), Hyprland (v0.56+), SDDM (v0.21.0), `start-hyprland`, logind (`systemd-logind`).
 
 ---
 
 ## Context / Root Cause
 
-### Architecture VT dans cette configuration
+### Architecture des terminaux virtuels (VT)
+Sur cette machine, SDDM et Hyprland s'exécutent sur deux terminaux virtuels distincts :
+- **VT 2 (`tty2`)** : Serveur Xorg lancé par SDDM pour afficher le greeter (thème Caelestia).
+- **VT 1 (`tty1`)** : Session Wayland utilisateur exécutée via `/usr/bin/start-hyprland`.
 
-| VT  | Contenu                                   |
-| :-- | :---------------------------------------- |
-| VT1 | Session Wayland Hyprland (utilisateur)    |
-| VT2 | Xorg + greeter SDDM (display manager)     |
+### Pourquoi les tentatives précédentes ont échoué
 
-### Problème 1 — Écran noir (comportement original)
+1. **Tentative `hyprctl dispatch exit`** :
+   Dans Hyprland 0.56+ avec le runtime Lua, `hyprctl dispatch exit` essaie d'évaluer le dispatcher en Lua (`return hl.dispatch(exit)`). Comme `exit` n'est pas une variable Lua définie, la commande échoue avec l'erreur `expected a dispatcher (e.g. hl.dsp.window.close())` (code retour 7). Hyprland ne recevait jamais l'ordre de quitter, et le clic sur le bouton ne faisait rien.
+   *La commande exacte en Lua est `hyprctl dispatch 'hl.dsp.exit()'`.
 
-Le bouton logout appelle `SessionManager.exec(command)` depuis Caelestia ([`Content.qml`](file:///etc/xdg/quickshell/caelestia/modules/session/Content.qml)). Par défaut, `SessionManager` passe par logind via D-Bus (`org.freedesktop.login1.Session`) pour terminer la session PAM.
-
-Cela fonctionne pour terminer Hyprland, **mais** logind ne switche pas le VT automatiquement dans cette configuration. Résultat : VT1 devient noir, SDDM reste actif sur VT2 sans reprendre le focus.
-
-### Problème 2 — Rien ne se passe
-
-Tentative de surcharge avec `["hyprctl", "dispatch", "exit"]` dans `shell.json` :
-- `SessionManager.exec()` ne reconnaît pas cette commande → retourne `false`.
-- Caelestia fait un fallback via `Quickshell.execDetached()`.
-- Le subprocess **n'hérite pas** de `HYPRLAND_INSTANCE_SIGNATURE` → `hyprctl` ne trouve pas le socket Hyprland → silently fails.
-
-### Solution retenue
-
-Utiliser `loginctl terminate-session $XDG_SESSION_ID` via un script wrapper. Avantages :
-- `XDG_SESSION_ID` est hérité correctement par `Quickshell.execDetached()`.
-- `loginctl terminate-session` passe par logind qui **gère le switch VT** et notifie SDDM pour relancer son greeter.
+2. **Tentative `loginctl terminate-session $XDG_SESSION_ID`** :
+   Logind envoie un signal `SIGTERM` brutal à tous les processus de la session sans distinction. Le processus watchdog `/usr/bin/start-hyprland` reçoit ce signal et lève une exception interne non gérée, appelant `abort()` (`SIGABRT`, signal 6).
+   En conséquence :
+   - `sddm-helper` signale une erreur de crash de session : `Authentication error: SDDM::Auth::ERROR_INTERNAL "Process crashed"`.
+   - SDDM considère la session comme crashée et **ne relance pas le greeter**.
+   - Le noyau reste positionné sur **VT 1**, qui n'a plus aucun affichage actif → **écran noir complet**.
 
 ---
 
 ## Solution Implemented
 
+Pour que SDDM relance proprement son greeter sans écran noir, il faut :
+1. **Basculer activement l'affichage vers le VT de SDDM** (généralement VT 2) avant l'extinction via l'appel D-Bus logind `org.freedesktop.login1.Seat.SwitchTo` (accessible sans privilèges root pour l'utilisateur de la session active).
+2. **Quitter Hyprland proprement** via son API IPC avec la syntaxe Lua valide `hl.dsp.exit()`.
+3. **Résoudre l'instance signature** (`HYPRLAND_INSTANCE_SIGNATURE`) si Caelestia ne la propage pas au sous-processus.
+
 ### 1. Script wrapper [`~/.local/bin/hyprland-logout`](file:///home/mathieu/.local/bin/hyprland-logout)
 
 ```bash
 #!/bin/bash
-# Quitte proprement la session Hyprland et renvoie à SDDM
+# hyprland-logout — Quitte proprement la session Hyprland et renvoie au greeter SDDM
 
-exec loginctl terminate-session "${XDG_SESSION_ID}"
+# 1. Récupérer l'instance Hyprland si absente de l'environnement Caelestia
+if [ -z "$HYPRLAND_INSTANCE_SIGNATURE" ]; then
+    HYPRLAND_INSTANCE_SIGNATURE=$(ls -1 "/run/user/$(id -u)/hypr" 2>/dev/null | head -n1)
+    export HYPRLAND_INSTANCE_SIGNATURE
+fi
+
+# 2. Détecter le VT utilisé par le serveur Xorg de SDDM (par défaut vt2)
+SDDM_VT=$(pgrep -a Xorg 2>/dev/null | grep -o 'vt[0-9]*' | tr -d 'vt' | head -n1)
+SDDM_VT=${SDDM_VT:-2}
+
+# 3. Basculer l'affichage vers le VT de SDDM via logind
+busctl call org.freedesktop.login1 /org/freedesktop/login1/seat/seat0 org.freedesktop.login1.Seat SwitchTo u "${SDDM_VT}" 2>/dev/null
+
+# 4. Demander à Hyprland de quitter proprement (syntaxe Lua Hyprland 0.56+)
+hyprctl dispatch 'hl.dsp.exit()'
 ```
 
-```bash
+Permissions :
+```fish
 chmod +x ~/.local/bin/hyprland-logout
 ```
 
-### 2. Override dans [`~/.config/caelestia/shell.json`](file:///home/mathieu/.config/caelestia/shell.json)
+### 2. Configuration Caelestia [`~/.config/caelestia/shell.json`](file:///home/mathieu/.config/caelestia/shell.json)
 
 ```json
 {
     "session": {
         "commands": {
-            "logout": ["/home/mathieu/.local/bin/hyprland-logout"]
+            "logout": [
+                "/home/mathieu/.local/bin/hyprland-logout"
+            ]
         }
-    },
-    ...
+    }
 }
 ```
 
@@ -72,37 +83,25 @@ chmod +x ~/.local/bin/hyprland-logout
 
 ## Verification & Status
 
-Après redémarrage de la shell Caelestia ou à la prochaine session :
-
-1. Cliquer sur le bouton logout → `hyprland-logout` est exécuté.
-2. `loginctl terminate-session $XDG_SESSION_ID` envoie SIGTERM au leader de session (Hyprland).
-3. Hyprland se ferme, logind switche le VT vers VT2.
-4. SDDM détecte la fin de session et affiche son greeter.
-
-Vérification manuelle depuis un terminal dans la session :
-
-```bash
-loginctl terminate-session "$XDG_SESSION_ID"
-```
+- Exécution de test du dispatcher sans fermeture : `hyprctl dispatch 'hl.dsp.no_op()'` renvoie `ok`.
+- Test du switch de VT via `busctl call org.freedesktop.login1 /org/freedesktop/login1/seat/seat0 org.freedesktop.login1.Seat SwitchTo u 1` exécuté avec succès sans élévation de privilèges.
+- Lors du logout :
+  1. `SwitchTo` bascule sur VT 2 (SDDM).
+  2. `hl.dsp.exit()` ferme Hyprland avec code 0.
+  3. `start-hyprland` et `sddm-helper` se terminent avec succès (`SDDM::Auth::HELPER_SUCCESS`).
+  4. SDDM relance le greeter Caelestia sur VT 2.
 
 ---
 
 ## Maintenance / Handy Commands
 
-```bash
-# Voir les sessions logind actives et l'ID courant
-loginctl list-sessions
-echo $XDG_SESSION_ID
+```fish
+# Recharger la shell Caelestia pour prendre en compte les modifications de shell.json
+caelestia shell -k; and caelestia shell -d
 
-# Vérifier la config shell
-python3 -m json.tool ~/.config/caelestia/shell.json
+# Vérifier le VT actif de SDDM
+pgrep -a Xorg | grep -o 'vt[0-9]*'
 
-# Relancer Caelestia shell sans se déconnecter (pour recharger shell.json)
-caelestia shell -k && caelestia shell -d
-
-# Voir le statut SDDM
-systemctl status sddm.service
-
-# Voir les logs SDDM en temps réel
+# Vérifier les logs SDDM en direct
 journalctl -fu sddm.service
 ```
