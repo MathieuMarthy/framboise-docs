@@ -29,6 +29,8 @@ This folder (`/home/mathieu/docs`) is the dedicated knowledge base and runbook r
 | [`battery-alert.md`](file:///home/mathieu/docs/battery-alert.md) | Native Caelestia toast when battery exceeds 80% (charger connected) + hardware charge limit toggle between 80%/100% via `SUPER+B`. | `~/.local/bin/battery-alert`, `~/.local/bin/battery-charge-limit`, `battery-alert.service`, `battery-alert.timer`, `caelestia shell toaster`, `/sys/class/power_supply/BAT0`, udev |
 | [`logout-sddm-fix.md`](file:///home/mathieu/docs/logout-sddm-fix.md) | Fix pour le bouton logout Caelestia qui ne relançait pas SDDM (écran noir). Sortie propre Hyprland via Lua `hl.dsp.exit()` et basculement VT vers SDDM via logind. | `~/.local/bin/hyprland-logout`, `~/.config/caelestia/shell.json`, `hl.dsp.exit()`, logind `SwitchTo`, SDDM VT2 |
 | [`sddm-default-session-hyprland.md`](file:///home/mathieu/docs/sddm-default-session-hyprland.md) | Correction de la session par défaut dans SDDM avec le thème Caelestia en utilisant `sessionModel.lastIndex` au lieu de `selectedIndex: 0`. | `/usr/share/sddm/themes/caelestia/Main.qml`, `sessionModel.lastIndex`, SDDM, Hyprland |
+| [`caelestia-clipboard.md`](file:///home/mathieu/docs/caelestia-clipboard.md) | Configuration de l'historique du presse-papier cliphist (nettoyage au démarrage et support images). | `~/.config/caelestia/hypr-user.lua`, `cliphist wipe`, wl-paste daemons |
+| [`caelestia-special-workspaces.md`](file:///home/mathieu/docs/caelestia-special-workspaces.md) | Configuration des workspaces spéciaux (scratchpads) pour la communication (Vesktop, ZapFast via `SUPER+D`) et la musique (Spotifast via `SUPER+M`). | `~/.config/caelestia/hypr-user.lua`, `~/.config/caelestia/cli.json`, `special:communication`, `special:music` |
 
 ---
 
