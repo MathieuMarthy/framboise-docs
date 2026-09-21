@@ -31,6 +31,8 @@ This folder (`/home/mathieu/docs`) is the dedicated knowledge base and runbook r
 | [`sddm-default-session-hyprland.md`](file:///home/mathieu/docs/sddm-default-session-hyprland.md) | Correction de la session par défaut dans SDDM avec le thème Caelestia en utilisant `sessionModel.lastIndex` au lieu de `selectedIndex: 0`. | `/usr/share/sddm/themes/caelestia/Main.qml`, `sessionModel.lastIndex`, SDDM, Hyprland |
 | [`caelestia-clipboard.md`](file:///home/mathieu/docs/caelestia-clipboard.md) | Configuration de l'historique du presse-papier cliphist (nettoyage au démarrage et support images). | `~/.config/caelestia/hypr-user.lua`, `cliphist wipe`, wl-paste daemons |
 | [`caelestia-special-workspaces.md`](file:///home/mathieu/docs/caelestia-special-workspaces.md) | Configuration des workspaces spéciaux (scratchpads) pour la communication (Vesktop, ZapFast via `SUPER+D`) et la musique (Spotifast via `SUPER+M`). | `~/.config/caelestia/hypr-user.lua`, `~/.config/caelestia/cli.json`, `special:communication`, `special:music` |
+| [`shortcuts-cheatsheet-window.md`](file:///home/mathieu/docs/shortcuts-cheatsheet-window.md) | Instant floating cheatsheet window summarizing all shortcuts (Fish & Caelestia/Hyprland) via `SUPER+H` or `SUPER+F1`. | `~/.local/bin/cheatsheet`, `~/.config/caelestia/hypr-user.lua`, `mdcat`, `foot` |
+
 
 ---
 
