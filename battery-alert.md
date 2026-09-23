@@ -4,17 +4,27 @@
 
 **Problem**: Keeping a lithium-ion battery charged at 100% continuously accelerates its degradation. The optimal longevity range is between **20% and 80%**.
 
-**Two-part solution**:
-1. **`battery-alert`** — sends a native Caelestia toast when the battery exceeds 80% while the charger is plugged in.
-2. **`battery-charge-limit`** — toggles the *hardware* charge threshold (`charge_control_end_threshold`) between 80% and 100%, accessible via `SUPER + B` or the command line.
+On this Dell laptop (**Dell Pro 13 Plus PB13250 / Intel Lunar Lake**), two issues occurred:
+1. **The charge limit was ignored by hardware**: Even with `charge_control_end_threshold` set to 80, the laptop continued charging to 100%, triggering repetitive "Battery at >80%" alert notifications.
+2. **The limit disappeared after sleep / suspend**: Waking the PC from sleep or closing the lid caused the Dell Embedded Controller (EC) to reset sysfs attributes to 100%. Pressing `SUPER + B` would then announce "limit enabled at 80%" again instead of toggling to 100%, desynchronizing the toggle.
 
-**Affected components**: `BAT0` (`/sys/class/power_supply/BAT0`), systemd user session, `caelestia shell toaster`, Hyprland (`hypr-user.lua`), udev.
+**Two-part solution**:
+1. **`battery-alert`** — checks battery state every 5 minutes: auto-heals hardware threshold drift and alerts the user via Caelestia toast if charging exceeds the threshold.
+2. **`battery-charge-limit`** — manages hardware thresholds and Dell `charge_types` (`Custom`), maintains persistent state in `~/.local/state/battery-charge-limit`, and is bound to `SUPER + B`.
+
+**Affected components**: `BAT0` (`/sys/class/power_supply/BAT0`), `dell-laptop` driver, systemd user session, sleep hook (`systemd-sleep`), `caelestia shell toaster`, Hyprland (`hypr-user.lua`), udev.
 
 ---
 
 ## Context / Root Cause
 
-The kernel exposes the current charge level at `/sys/class/power_supply/BAT0/capacity` and the charging state at `status` (`Charging`, `Discharging`, `Full`, `Not charging`). The `charge_control_end_threshold` file allows hardware-level charge limiting — the battery controller stops charging at the configured threshold. By default this file is read-only for regular users; a udev rule makes it writable by the `users` group at every boot.
+### 1. Dell Firmware Charging Modes (`charge_types`)
+The Dell kernel driver (`dell-laptop`) exposes `/sys/class/power_supply/BAT0/charge_types` with modes: `Trickle`, `Fast`, `Standard`, `[Adaptive]`, `Custom`.
+By default, the Dell BIOS/EC operates in `Adaptive` mode. **In `Adaptive` mode, the firmware completely ignores `charge_control_end_threshold`.** Setting 80% in `charge_control_end_threshold` had zero effect on hardware charging until `charge_types` was explicitly switched to `Custom`.
+
+### 2. Reset on Suspend / Resume (Firmware Volatility)
+Linux `sysfs` files are volatile in-memory representations. On Dell laptops, the Embedded Controller (EC) re-evaluates power profiles on every suspend/resume cycle and AC replug, resetting `charge_control_end_threshold` to 100% and reverting `charge_types`.
+Previously, the sleep hook only adjusted permissions (`chmod g+w`) without restoring the threshold value, causing the limit to "vanish" after sleep.
 
 ---
 
@@ -24,98 +34,79 @@ The kernel exposes the current charge level at `/sys/class/power_supply/BAT0/cap
 
 | File | Role |
 | :--- | :--- |
-| `~/.local/bin/battery-alert` | Sends a Caelestia toast when battery > 80% and charger is connected |
-| `~/.local/bin/battery-charge-limit` | Toggles hardware charge limit between 80% and 100% |
-| `~/.local/bin/setup-battery-charge-limit` | One-time setup script (requires sudo) — installs udev rule + sleep hook |
+| `~/.local/bin/battery-charge-limit` | Toggles hardware limit (80% / 100%), sets Dell `Custom` mode, persists state |
+| `~/.local/bin/battery-alert` | Detects threshold drift (auto-heals) & toasts when charging > 80% |
+| `~/.local/state/battery-charge-limit` | Persistent state file storing target threshold (`80` or `100`) |
+| `~/.config/systemd/user/battery-charge-limit.service` | Oneshot unit applying saved limit on session login |
 | `~/.config/systemd/user/battery-alert.service` | Systemd oneshot unit for battery-alert |
 | `~/.config/systemd/user/battery-alert.timer` | Timer: runs every 5 minutes |
-| `~/.config/caelestia/hypr-user.lua` | `SUPER + B` keybind for the toggle |
-| `/etc/udev/rules.d/80-battery-charge-limit.rules` | udev rule: applies permissions at boot and on `change` events |
-| `/etc/systemd/system-sleep/battery-charge-limit-perms` | Sleep hook: reapplies permissions after every resume from suspend/hibernate |
+| `~/.local/bin/setup-battery-charge-limit` | Setup script (requires sudo) — installs udev rule + sleep hook |
+| `/etc/udev/rules.d/80-battery-charge-limit.rules` | udev rule: grants `users` group write access to thresholds & `charge_types` |
+| `/etc/systemd/system-sleep/battery-charge-limit-perms` | Sleep hook: reapplies permissions AND restores `Custom` 80% on resume |
+| `~/.config/caelestia/hypr-user.lua` | `SUPER + B` keybind for toggle |
 
-### Script: `battery-alert`
-
-Checks the charge level every 5 minutes via systemd timer. Only sends a toast if the status is `Charging` or `Full` (never while discharging).
-
-```bash
-# Toast via Caelestia's native toaster
-caelestia shell toaster warn "🔋 Battery at ${CAPACITY}%" "..." "battery_saver"
-```
+---
 
 ### Script: `battery-charge-limit`
 
 ```bash
-battery-charge-limit on      # enable limit at 80% + toast
-battery-charge-limit off     # reset to 100% + toast
-battery-charge-limit toggle  # toggle (used by SUPER + B)
-battery-charge-limit status  # {"limit": 80, "limited": true}
+battery-charge-limit          # toggle between 80% and 100% (used by SUPER + B)
+battery-charge-limit on       # force enable limit at 80%
+battery-charge-limit off      # force disable limit (reset to 100%)
+battery-charge-limit apply    # reapply saved state to hardware sysfs
+battery-charge-limit status   # {"hardware_limit": 80, "configured_limit": 80, "charge_type": "Custom", "limited": true}
 ```
 
-Also adjusts `charge_control_start_threshold` (75% in limited mode, 95% in normal mode) to avoid micro-cycles.
+#### Safe Threshold Ordering
+To prevent kernel `-EINVAL` errors:
+- **When lowering to 80%**: `charge_types` → `Custom`, `charge_control_start_threshold` → `75`, `charge_control_end_threshold` → `80`.
+- **When raising to 100%**: `charge_control_end_threshold` → `100`, `charge_control_start_threshold` → `95`.
 
-### udev rule
+---
 
-Fires on `ACTION=="add"` (boot) **and** `ACTION=="change"` (emitted by the battery driver when the charger is plugged/unplugged or on some resume paths):
+### Script: `battery-alert`
 
-```
-# /etc/udev/rules.d/80-battery-charge-limit.rules
-ACTION=="add|change", SUBSYSTEM=="power_supply", KERNEL=="BAT0", \
-    RUN+="/bin/chgrp users .../charge_control_end_threshold", \
-    RUN+="/bin/chmod g+w .../charge_control_end_threshold", ...
-```
+Runs every 5 minutes via `battery-alert.timer`.
+1. **Self-Healing**: Checks if the persistent state is 80%. If the hardware sysfs has drifted (e.g. back to 100 or non-`Custom`), it immediately calls `battery-charge-limit apply --silent`.
+2. **Alert**: If the battery is actively charging and exceeds the threshold, displays a Caelestia toast.
 
-### systemd-sleep hook
+---
 
-Belt-and-suspenders guarantee: the kernel resets sysfs permissions on every suspend/resume cycle. This hook explicitly reapplies them in the `post` phase regardless of what udev does:
+### Sleep Hook (`/etc/systemd/system-sleep/battery-charge-limit-perms`)
 
-```bash
-# /etc/systemd/system-sleep/battery-charge-limit-perms
-case "$1" in
-    post)
-        chgrp users /sys/class/power_supply/BAT0/charge_control_end_threshold
-        chmod g+w  /sys/class/power_supply/BAT0/charge_control_end_threshold
-        # ... same for start_threshold
-        ;;
-esac
-```
-
-### Hyprland keybind (`~/.config/caelestia/hypr-user.lua`)
-
-```lua
--- SUPER + B: toggle charge limit between 80% and 100%
-hl.bind("SUPER + b", hl.dsp.exec_cmd("/home/mathieu/.local/bin/battery-charge-limit toggle"))
-```
+Executed as `root` on every resume from suspend:
+1. Re-applies `chgrp users` and `chmod g+w` to `charge_control_end_threshold`, `charge_control_start_threshold`, and `charge_types`.
+2. Reads `/home/mathieu/.local/state/battery-charge-limit` and immediately restores `Custom` mode and 80% threshold before the user session resumes.
 
 ---
 
 ## Verification & Status
 
 ```bash
-# Check timer status
-systemctl --user status battery-alert.timer
-
-# Show next trigger times
-systemctl --user list-timers battery-alert.timer
-
-# Test the alert toast manually (force threshold to 0)
-/home/mathieu/.local/bin/battery-alert 0
-
-# Check current charge limit state
+# Check status JSON
 battery-charge-limit status
 
-# Verify udev rule and file permissions
-ls -la /sys/class/power_supply/BAT0/charge_control_end_threshold
-cat /sys/class/power_supply/BAT0/charge_control_end_threshold
+# Verify Dell charge type is Custom
+cat /sys/class/power_supply/BAT0/charge_types
+# Expected output: Trickle Fast Standard Adaptive [Custom]
 
-# View service logs
-journalctl --user -u battery-alert.service -n 20
+# Verify thresholds
+cat /sys/class/power_supply/BAT0/charge_control_end_threshold    # 80
+cat /sys/class/power_supply/BAT0/charge_control_start_threshold  # 75
+
+# Check persistent state file
+cat ~/.local/state/battery-charge-limit                          # 80
+
+# Check user services
+systemctl --user status battery-charge-limit.service
+systemctl --user status battery-alert.timer
 ```
 
 ---
 
-## First-Time Setup (run once)
+## Applying System Permissions (Run Once with Sudo)
 
-Run this command in your Fish terminal to install the udev rule:
+To install the updated udev rule and resume sleep hook:
 
 ```fish
 bash ~/.local/bin/setup-battery-charge-limit
@@ -126,28 +117,12 @@ bash ~/.local/bin/setup-battery-charge-limit
 ## Maintenance / Handy Commands
 
 ```bash
-# Change alert threshold to 85%
-micro ~/.config/systemd/user/battery-alert.service
-# Edit: ExecStart=...battery-alert 85
-systemctl --user daemon-reload
+# Manually test toggle
+battery-charge-limit toggle
 
-# Change check frequency (e.g. every 10 minutes)
-micro ~/.config/systemd/user/battery-alert.timer
-# Edit: OnUnitActiveSec=10min
-systemctl --user daemon-reload && systemctl --user restart battery-alert.timer
+# Test alert notification toast manually
+/home/mathieu/.local/bin/battery-alert 0
 
-# Temporarily stop the timer
-systemctl --user stop battery-alert.timer
-
-# Permanently disable
-systemctl --user disable --now battery-alert.timer
-
-# Re-enable
-systemctl --user enable --now battery-alert.timer
+# Check logs of 5-minute watchdog
+journalctl --user -u battery-alert.service -n 20
 ```
-
-> [!WARNING]
-> The udev rule lives in `/etc/udev/rules.d/` (system file). The scripts and the keybind in `~/.config/caelestia/hypr-user.lua` are all user files. **None of these are touched by `paru -Syu caelestia-shell`** — they survive Caelestia updates.
-
-> [!TIP]
-> The Intel Core Ultra 5 236V has native support for `charge_control_end_threshold` via the `intel_pmc_core` driver. No need for `tlp` or `auto-cpufreq` — we write directly to sysfs.
