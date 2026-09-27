@@ -11,6 +11,7 @@
 > Whenever an agent creates, modifies, installs, or troubleshoots any system service, package, configuration, script, or hardware workaround on this system (`framboise`), the agent **MUST ALWAYS**:
 > 1. **Create or update a dedicated runbook file** in `/home/mathieu/docs/<topic-name>.md` explaining the problem, root cause, implementation, verification steps, and maintenance commands.
 > 2. **Update the index table below** in this `AGENTS.md` file to register the new or modified documentation file.
+> 3. All the documentation need to be in english
 >
 > *Rule definition*: See [`.agents/rules/system-documentation.md`](file:///home/mathieu/docs/.agents/rules/system-documentation.md).
 
@@ -32,7 +33,6 @@ This folder (`/home/mathieu/docs`) is the dedicated knowledge base and runbook r
 | [`caelestia-clipboard.md`](file:///home/mathieu/docs/caelestia-clipboard.md) | Configuration de l'historique du presse-papier cliphist (nettoyage au démarrage et support images). | `~/.config/caelestia/hypr-user.lua`, `cliphist wipe`, wl-paste daemons |
 | [`caelestia-special-workspaces.md`](file:///home/mathieu/docs/caelestia-special-workspaces.md) | Configuration des workspaces spéciaux (scratchpads) pour la communication (Vesktop, ZapFast via `SUPER+D`) et la musique (Spotifast via `SUPER+M`). | `~/.config/caelestia/hypr-user.lua`, `~/.config/caelestia/cli.json`, `special:communication`, `special:music` |
 | [`shortcuts-cheatsheet-window.md`](file:///home/mathieu/docs/shortcuts-cheatsheet-window.md) | Instant floating cheatsheet window summarizing all shortcuts (Fish & Caelestia/Hyprland) via `SUPER+H` or `SUPER+F1`. | `~/.local/bin/cheatsheet`, `~/.config/caelestia/hypr-user.lua`, `mdcat`, `foot` |
-| [`packet-autostart.md`](file:///home/mathieu/docs/packet-autostart.md) | Automatic startup & background system tray persistence for Packet (Quick Share). Custom XDG Background portal backend for Hyprland. | `~/.config/caelestia/hypr-user.lua`, `xdg-desktop-portal-hyprland-background`, Flatpak `io.github.nozwock.Packet` |
 
 
 ---
