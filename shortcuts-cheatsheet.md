@@ -37,7 +37,7 @@
 | :--- | :--- |
 | `SUPER + V` | Clipboard history (`cliphist` via Fuzzel picker) |
 | `SUPER + ALT + V` | Delete selected item from clipboard history |
-| `SUPER + .` *(period)* | Emoji and glyph picker |
+| `SUPER + ;` / `SUPER + .` | Emoji and glyph picker (AZERTY physical `.` key) |
 | `SUPER + SHIFT + C` | Screen color picker (`hyprpicker`) |
 | `Print` | Full-screen screenshot |
 | `SUPER + SHIFT + S` | Freeze-screen screenshot |
