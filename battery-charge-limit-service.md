@@ -89,7 +89,7 @@ WantedBy=default.target
                    ▼                 ▼                 ▼                 ▼
  ┌───────────────────┐ ┌───────────────┐ ┌───────────┐ ┌─────────────────┐
  │battery-charge-    │ │systemd-sleep  │ │Hyprland   │ │battery-alert    │
- │limit.service      │ │hook (root)    │ │SUPER + B  │ │.timer (5 min)   │
+ │limit.service      │ │hook (root)    │ │SUPER + B  │ │.timer (10 min)  │
  ├───────────────────┤ ├───────────────┤ ├───────────┤ ├─────────────────┤
  │Runs once on login │ │Runs on wake   │ │Toggles    │ │Heals drift and  │
  │Applies saved limit│ │Re-applies     │ │80% / 100% │ │sounds alerts if │
@@ -109,11 +109,11 @@ WantedBy=default.target
 1. **Session Login (Reboot persistence)**:
    Handled by `battery-charge-limit.service`. Reads `~/.local/state/battery-charge-limit` and configures sysfs.
 2. **Suspend / Resume (Sleep persistence)**:
-   Handled by `/etc/systemd/system-sleep/battery-charge-limit-perms` (root hook). Re-applies group permissions and restores `Custom` 80% if stored in the state file.
+   Handled by `/etc/systemd/system-sleep/battery-charge-limit-perms` (root hook). Re-applies group permissions and delegates threshold restoration directly to `battery-charge-limit apply --silent`.
 3. **Manual User Toggle**:
    Handled by `SUPER + B` in Hyprland (`~/.config/caelestia/hypr-user.lua`), calling `battery-charge-limit toggle`. Updates state file and shows Caelestia toast.
 4. **Drift Self-Healing**:
-   Handled by `battery-alert.timer` (running `battery-alert.service` every 5 minutes). If hardware registers drift back to 100 or non-`Custom`, it re-executes `apply --silent`.
+   Handled by `battery-alert.timer` (running `battery-alert.service` every 10 minutes). If hardware registers drift back to 100 or non-`Custom`, it re-executes `apply --silent`.
 
 ---
 
