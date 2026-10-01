@@ -46,7 +46,7 @@ In Caelestia Shell, toasts are muted by default when any application is fullscre
 | `~/.config/caelestia/shell.json` | Configures `utilities.toasts.fullscreen: "important"` for fullscreen toast rendering |
 | `~/.local/state/battery-charge-limit` | Persistent state file storing target threshold (`80` or `100`) |
 | `~/.local/state/battery-alert-last-discharge-level` | Tracks last notified discharge percentage to avoid redundant sound triggers |
-| `~/.config/systemd/user/battery-charge-limit.service` | Oneshot unit applying saved limit on session login |
+| [`~/.config/systemd/user/battery-charge-limit.service`](file:///home/mathieu/docs/battery-charge-limit-service.md) | Oneshot unit applying saved limit on session login (see [dedicated runbook](file:///home/mathieu/docs/battery-charge-limit-service.md)) |
 | `~/.config/systemd/user/battery-alert.service` | Systemd oneshot unit for battery-alert with audio alerts |
 | `~/.config/systemd/user/battery-alert.timer` | Timer: runs every 5 minutes |
 | `~/.local/bin/setup-battery-charge-limit` | Setup script (requires sudo) — installs udev rule + sleep hook |

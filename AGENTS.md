@@ -28,6 +28,7 @@ This folder (`/home/mathieu/docs`) is the dedicated knowledge base and runbook r
 | [`bluetooth-caelestia-fix.md`](file:///home/mathieu/docs/bluetooth-caelestia-fix.md) | Resolves Intel BE201 PCIe probe race conditions and BlueZ agent pairing failures in Caelestia. | `btintel-fix.service`, `bluetooth-agent.service`, BlueZ `bluetoothctl`, PipeWire / WirePlumber |
 | [`hyprland-azerty-workspaces.md`](file:///home/mathieu/docs/hyprland-azerty-workspaces.md) | Maps top-row AZERTY keys (`&` through `à`) to Hyprland workspaces and resolves key collisions. | `~/.config/caelestia/hypr-user.lua`, XKB keysyms, Caelestia `wsaction` helpers |
 | [`battery-alert.md`](file:///home/mathieu/docs/battery-alert.md) | Hardware charge limit (80%/100% via `SUPER+B`), audio alerts on high charge (>80%) and low battery (≤20%/≤10%), and Caelestia fullscreen toasts. | `~/.local/bin/battery-alert`, `~/.local/bin/battery-charge-limit`, `battery-alert.timer`, `~/.config/caelestia/shell.json`, PipeWire (`pw-play`), udev, systemd-sleep |
+| [`battery-charge-limit-service.md`](file:///home/mathieu/docs/battery-charge-limit-service.md) | Enforces saved battery charge threshold on session login (`apply --silent`) to counter volatile Dell sysfs resets. | `battery-charge-limit.service`, `~/.local/bin/battery-charge-limit`, `~/.local/state/battery-charge-limit` |
 | [`logout-sddm-fix.md`](file:///home/mathieu/docs/logout-sddm-fix.md) | Fix pour le bouton logout Caelestia qui ne relançait pas SDDM (écran noir). Sortie propre Hyprland via Lua `hl.dsp.exit()` et basculement VT vers SDDM via logind. | `~/.local/bin/hyprland-logout`, `~/.config/caelestia/shell.json`, `hl.dsp.exit()`, logind `SwitchTo`, SDDM VT2 |
 | [`sddm-default-session-hyprland.md`](file:///home/mathieu/docs/sddm-default-session-hyprland.md) | Correction de la session par défaut dans SDDM avec le thème Caelestia en utilisant `sessionModel.lastIndex` au lieu de `selectedIndex: 0`. | `/usr/share/sddm/themes/caelestia/Main.qml`, `sessionModel.lastIndex`, SDDM, Hyprland |
 | [`caelestia-clipboard.md`](file:///home/mathieu/docs/caelestia-clipboard.md) | Configuration de l'historique du presse-papier cliphist (nettoyage au démarrage et support images). | `~/.config/caelestia/hypr-user.lua`, `cliphist wipe`, wl-paste daemons |
@@ -115,6 +116,8 @@ Caelestia User Fish Config = ~/.config/caelestia/user-config.fish
 | **Fish Config** | `~/.config/fish/config.fish` | Main fish interactive configuration |
 | **Bluetooth Agent Service** | `~/.config/systemd/user/bluetooth-agent.service` | User systemd unit for BlueZ auto-pairing |
 | **Bluetooth Agent Script** | `~/.local/bin/bluetooth-agent` | Python wrapper around `bluetoothctl --agent NoInputNoOutput` |
+| **Battery Charge Limit Service** | `~/.config/systemd/user/battery-charge-limit.service` | User systemd unit applying saved charge limit on login |
+| **Battery Charge Limit Script** | `~/.local/bin/battery-charge-limit` | Script controlling Dell EC hardware charge limits |
 | **Intel BT Fix Service** | `/etc/systemd/system/btintel-fix.service` | Root systemd service for BE201 boot race recovery |
 
 ---
