@@ -94,6 +94,9 @@ Runs every 5 minutes via `battery-alert.timer`:
 
 ```json
 {
+    "general": {
+        "showOverFullscreen": true
+    },
     "utilities": {
         "toasts": {
             "fullscreen": "important"
@@ -101,7 +104,9 @@ Runs every 5 minutes via `battery-alert.timer`:
     }
 }
 ```
-Setting `"fullscreen": "important"` ensures that `Toast.Warning` and `Toast.Error` HUD notifications remain active when a fullscreen game or media application is running.
+1. Setting `"utilities.toasts.fullscreen": "important"` ensures that `Toast.Warning` and `Toast.Error` HUD notifications remain active when a fullscreen app is running.
+2. Setting `"general.showOverFullscreen": true` promotes Caelestia's Wayland surface layer from `Top` to `Overlay`, allowing UI overlays to render above Hyprland fullscreen windows.
+3. In `battery-alert`, notifications are sent via both `caelestia shell toaster` and `notify-send` to ensure top-banner popups appear over games and media players even if bottom drawers are masked.
 
 ---
 
