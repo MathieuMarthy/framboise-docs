@@ -105,6 +105,55 @@ Dans la section `"toggles"` de `cli.json`, Caelestia prend en charge le comporte
 - `spotifast` et `vesktop` ont un champ `command` : si l'application n'est pas encore lancée, appuyer sur le raccourci (`SUPER+M` ou `SUPER+D`) la démarre automatiquement.
 - `zapfast` a `move: true` sans `command` : cela évite de forcer le lancement simultané de Discord ET WhatsApp dès qu'on appuie sur `SUPER+D`. Dès que `zapfast` est lancé, il rejoint le tiroir communication.
 
+### 3. Launching Flatpaks in `toggles` (`cli.json`)
+
+When configuring a Flatpak application in `cli.json`, the `"command"` field **MUST be an array of separate arguments** (`argv`), not a single space-separated string.
+
+#### ❌ Incorrect syntax (will fail):
+```json
+"command": ["flatpak run com.spotify.Client"]
+// or
+"command": ["/usr/bin/flatpak run --branch=stable --arch=x86_64 --command=spotify com.spotify.Client"]
+```
+
+#### ✅ Correct syntax:
+```json
+"command": ["flatpak", "run", "com.spotify.Client"]
+```
+
+#### Why this happens:
+1. **Lua `shell_join` (`~/.config/hypr/utils/functions.lua`)**: Caelestia wraps each array item in single quotes (`'item'`). A single string with spaces produces `'flatpak run ...'`, which shell interprets as a literal binary file named `"flatpak run ..."` with spaces, failing with `command not found`. Splitting arguments produces `'flatpak' 'run' 'com.spotify.Client'`.
+2. **Python `shutil.which` (`caelestia toggle`)**: Caelestia checks `shutil.which(spawn[0])`. If `spawn[0]` contains spaces/arguments instead of the binary name `"flatpak"`, path lookup returns `None` and the spawn is aborted.
+
+#### Full Flatpak Toggle Example:
+```json
+"music": {
+    "spotify": {
+        "enable": true,
+        "match": [
+            { "class": "Spotify" },
+            { "initialTitle": "Spotify" },
+            { "initialTitle": "Spotify Free" }
+        ],
+        "command": ["flatpak", "run", "com.spotify.Client"],
+        "move": true
+    }
+},
+"todo": {
+    "todoist": {
+        "enable": true,
+        "match": [{ "class": "Todoist" }],
+        "command": ["flatpak", "run", "com.todoist.Todoist"],
+        "move": true
+    }
+}
+```
+*(Optional window rule in `~/.config/caelestia/hypr-user.lua` to route immediately on startup)*:
+```lua
+hl.window_rule({ match = { class = "Spotify" }, workspace = "special:music" })
+hl.window_rule({ match = { class = "Todoist" }, workspace = "special:todo" })
+```
+
 ---
 
 ## Verification & Status
