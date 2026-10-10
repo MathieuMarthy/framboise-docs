@@ -35,6 +35,7 @@ This folder (`/home/mathieu/docs`) is the dedicated knowledge base and runbook r
 | [`caelestia-special-workspaces.md`](file:///home/mathieu/docs/caelestia-special-workspaces.md) | Special workspaces (scratchpads) for communication, music, and todoist, including Flatpak toggle configuration in `cli.json`. | `~/.config/caelestia/hypr-user.lua`, `~/.config/caelestia/cli.json`, `special:communication`, `special:music`, Flatpak |
 | [`shortcuts-cheatsheet-window.md`](file:///home/mathieu/docs/shortcuts-cheatsheet-window.md) | Instant floating cheatsheet window summarizing all shortcuts (Fish & Caelestia/Hyprland) via `SUPER+H` or `SUPER+F1`. | `~/.local/bin/cheatsheet`, `~/.config/caelestia/hypr-user.lua`, `mdcat`, `foot` |
 | [`caelestia-emoji-picker-azerty.md`](file:///home/mathieu/docs/caelestia-emoji-picker-azerty.md) | Resolution for Caelestia emoji picker shortcut (`SUPER + .` / `SUPER + ;`) on French AZERTY keyboard layout. | `~/.config/caelestia/hypr-user.lua`, `caelestia emoji -p`, `fuzzel`, Hyprland `hl.bind` |
+| [`hyprland-volume-step.md`](file:///home/mathieu/docs/hyprland-volume-step.md) | Configure volume step size (5% instead of 10%) for hardware volume keys. | `~/.config/caelestia/hypr-vars.lua`, `volumeStep = 5`, `wpctl` |
 
 
 ---
