@@ -36,6 +36,7 @@ This folder (`/home/mathieu/docs`) is the dedicated knowledge base and runbook r
 | [`shortcuts-cheatsheet-window.md`](file:///home/mathieu/docs/shortcuts-cheatsheet-window.md) | Instant floating cheatsheet window summarizing all shortcuts (Fish & Caelestia/Hyprland) via `SUPER+H` or `SUPER+F1`. | `~/.local/bin/cheatsheet`, `~/.config/caelestia/hypr-user.lua`, `mdcat`, `foot` |
 | [`caelestia-emoji-picker-azerty.md`](file:///home/mathieu/docs/caelestia-emoji-picker-azerty.md) | Resolution for Caelestia emoji picker shortcut (`SUPER + .` / `SUPER + ;`) on French AZERTY keyboard layout. | `~/.config/caelestia/hypr-user.lua`, `caelestia emoji -p`, `fuzzel`, Hyprland `hl.bind` |
 | [`hyprland-volume-step.md`](file:///home/mathieu/docs/hyprland-volume-step.md) | Configure volume step size (5% instead of 10%) for hardware volume keys. | `~/.config/caelestia/hypr-vars.lua`, `volumeStep = 5`, `wpctl` |
+| [`qt6-quickshell-missing-icons-fix.md`](file:///home/mathieu/docs/qt6-quickshell-missing-icons-fix.md) | Fix missing notification icons (black/pink checkerboard) caused by Qt 6.12 QPA ABI version mismatch in `qtengine`. | `~/.config/hypr/hyprland/env.lua`, `QS_ICON_THEME`, `qtengine`, Quickshell `IconImageProvider` |
 
 
 ---
@@ -112,6 +113,7 @@ Caelestia User Fish Config = ~/.config/caelestia/user-config.fish
 | :--- | :--- | :--- |
 | **Caelestia Hyprland Lua** | `~/.config/caelestia/hypr-user.lua` | Custom user keybinds and input configuration |
 | **Caelestia Hyprland Vars** | `~/.config/caelestia/hypr-vars.lua` | Variable overrides |
+| **Hyprland Environment Config** | `~/.config/hypr/hyprland/env.lua` | System and GUI environment variables (including `QS_ICON_THEME`) |
 | **Caelestia Fish Custom** | `~/.config/caelestia/user-config.fish` | Extra shell configuration sourced by fish |
 | **Caelestia CLI Config** | `~/.config/caelestia/cli.json` | Caelestia CLI settings |
 | **Fish Config** | `~/.config/fish/config.fish` | Main fish interactive configuration |
