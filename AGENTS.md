@@ -37,6 +37,7 @@ This folder (`/home/mathieu/docs`) is the dedicated knowledge base and runbook r
 | [`caelestia-emoji-picker-azerty.md`](file:///home/mathieu/docs/caelestia-emoji-picker-azerty.md) | Resolution for Caelestia emoji picker shortcut (`SUPER + .` / `SUPER + ;`) on French AZERTY keyboard layout. | `~/.config/caelestia/hypr-user.lua`, `caelestia emoji -p`, `fuzzel`, Hyprland `hl.bind` |
 | [`hyprland-volume-step.md`](file:///home/mathieu/docs/hyprland-volume-step.md) | Configure volume step size (5% instead of 10%) for hardware volume keys. | `~/.config/caelestia/hypr-vars.lua`, `volumeStep = 5`, `wpctl` |
 | [`qt6-quickshell-missing-icons-fix.md`](file:///home/mathieu/docs/qt6-quickshell-missing-icons-fix.md) | Fix missing notification icons (black/pink checkerboard) caused by Qt 6.12 QPA ABI version mismatch in `qtengine`. | `~/.config/hypr/hyprland/env.lua`, `QS_ICON_THEME`, `qtengine`, Quickshell `IconImageProvider` |
+| [`system-update-notification.md`](file:///home/mathieu/docs/system-update-notification.md) | Periodic update check with click-to-update notification; the `foot` update terminal stays open after `caelestia update` until Enter is pressed. | `~/.local/bin/check-updates.sh`, `check-updates.timer`, `notify-send --action`, `foot`, `caelestia update` |
 
 
 ---
