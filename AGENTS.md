@@ -38,6 +38,8 @@ This folder (`/home/mathieu/docs`) is the dedicated knowledge base and runbook r
 | [`hyprland-volume-step.md`](file:///home/mathieu/docs/hyprland-volume-step.md) | Configure volume step size (5% instead of 10%) for hardware volume keys. | `~/.config/caelestia/hypr-vars.lua`, `volumeStep = 5`, `wpctl` |
 | [`qt6-quickshell-missing-icons-fix.md`](file:///home/mathieu/docs/qt6-quickshell-missing-icons-fix.md) | Fix missing notification icons (black/pink checkerboard) caused by Qt 6.12 QPA ABI version mismatch in `qtengine`. | `~/.config/hypr/hyprland/env.lua`, `QS_ICON_THEME`, `qtengine`, Quickshell `IconImageProvider` |
 | [`system-update-notification.md`](file:///home/mathieu/docs/system-update-notification.md) | Periodic update check with click-to-update notification; the `foot` update terminal stays open after `caelestia update` until Enter is pressed. | `~/.local/bin/check-updates.sh`, `check-updates.timer`, `notify-send --action`, `foot`, `caelestia update` |
+| [`caelestia-screen-recorder-fix.md`](file:///home/mathieu/docs/caelestia-screen-recorder-fix.md) | Fix for UI-triggered recordings dying after ~3 s (SIGPIPE on `gpu-screen-recorder` stderr once the Quickshell process pipe closes). | `~/.config/caelestia/cli.json` (`record.extraArgs: ["-v","no"]`), `gpu-screen-recorder`, `services/Recorder.qml`, `caelestia record` |
+| [`caelestia-transparency-sync.md`](file:///home/mathieu/docs/caelestia-transparency-sync.md) | Links the Caelestia settings transparency toggle to all windows: Hyprland `windowOpacity` (0.95 ↔ 1.0) and foot `alpha`, synced live by a systemd path unit. | `~/.config/caelestia/hypr-vars.lua`, `~/.local/bin/caelestia-transparency-sync`, `caelestia-transparency-sync.path`, `foot.ini` `alpha` |
 
 
 ---
